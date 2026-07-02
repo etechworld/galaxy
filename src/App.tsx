@@ -107,7 +107,7 @@ const statusClass: Record<ServiceStatus, string> = {
 
 const navItems: Array<{ key: ViewKey; label: string; icon: LucideIcon }> = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { key: "receive", label: "New Intake", icon: Plus },
+  { key: "receive", label: "Receive Item", icon: Plus },
   { key: "jobs", label: "Jobs List", icon: ListChecks },
   { key: "details", label: "Repair Desk", icon: Wrench },
   { key: "inventory", label: "Inventory", icon: Package },
