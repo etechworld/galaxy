@@ -288,7 +288,7 @@ function LoginScreen({
           <div>
             <h1 id="login-title">Galaxy Cartridge Care</h1>
             <p>Service receive, repair update, inventory</p>
-            <span className="dev-credit">Developed by PC WORLD | v2.7</span>
+            <span className="dev-credit">Developed by PC WORLD | v2.8</span>
           </div>
         </div>
 
@@ -545,7 +545,7 @@ function AppShell({
         <div className="dev-credit-sidebar">
           Galaxy Cartridge Care
           <br />
-          <small>Developed by PC WORLD | v2.7</small>
+          <small>Developed by PC WORLD | v2.8</small>
         </div>
 
         <div className="user-card">
@@ -1972,17 +1972,6 @@ function StatusPanel({
                 </select>
               </label>
 
-              <label className="field" style={{ gridColumn: '1 / -1' }}>
-                <span>What Repaired (Optional)</span>
-                <textarea
-                  value={repairNote}
-                  onChange={(e) => setRepairNote(e.target.value)}
-                  placeholder="Describe what was repaired..."
-                  disabled={status !== "Repaired"}
-                  style={{ minHeight: '60px', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                />
-              </label>
-
               <div className="field" style={{ gridColumn: '1 / -1' }}>
                 <span>Items (Parts Used)</span>
                 {parts.map((part, index) => (
@@ -2034,6 +2023,17 @@ function StatusPanel({
                   </div>
                 )}
               </div>
+
+              <label className="field" style={{ gridColumn: '1 / -1' }}>
+                <span>What Repaired (Optional)</span>
+                <textarea
+                  value={repairNote}
+                  onChange={(e) => setRepairNote(e.target.value)}
+                  placeholder="Describe what was repaired..."
+                  disabled={status !== "Repaired"}
+                  style={{ minHeight: '60px', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                />
+              </label>
 
               <button type="submit" className="primary-button full-width" aria-label="Action button">
                 Confirm Update
