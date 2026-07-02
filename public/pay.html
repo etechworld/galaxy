@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pay via UPI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; }
+        .card { background: white; padding: 40px 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; max-width: 320px; width: 100%; box-sizing: border-box; }
+        .btn { display: inline-block; padding: 14px 28px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 24px; font-size: 1.1rem; width: 80%; }
+        .amount { font-size: 2.5rem; color: #0f172a; margin: 10px 0; }
+        .vpa { color: #64748b; font-size: 0.9rem; margin-top: 10px; word-break: break-all; }
+        h2 { margin: 0; color: #334155; font-size: 1.2rem; }
+        .footer { margin-top: 20px; font-size: 0.8rem; color: #94a3b8; }
+        .icon { width: 48px; height: 48px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 16px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">₹</div>
+        <h2 id="name">Galaxy Cartridge Care</h2>
+        <div class="amount" id="amount">₹0</div>
+        <div class="vpa">Paying to: <strong id="vpa"></strong></div>
+        <a id="paybtn" class="btn" href="#">Pay via UPI App</a>
+        <div class="footer">Safe & Secure Payments</div>
+    </div>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const pa = params.get('pa');
+        const pn = params.get('pn') || 'Store';
+        const am = params.get('am') || '0';
+        
+        if (pa) {
+            document.getElementById('name').textContent = decodeURIComponent(pn);
+            document.getElementById('amount').textContent = '₹' + am;
+            document.getElementById('vpa').textContent = pa;
+            
+            const upiLink = `upi://pay?pa=${pa}&pn=${pn}&am=${am}&cu=INR`;
+            const btn = document.getElementById('paybtn');
+            btn.href = upiLink;
+            
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                setTimeout(() => {
+                    window.location.href = upiLink;
+                }, 1200);
+            }
+        } else {
+            document.getElementById('name').textContent = "Invalid Payment Link";
+            document.getElementById('amount').style.display = "none";
+            document.getElementById('paybtn').style.display = "none";
+            document.getElementById('vpa').style.display = "none";
+        }
+    </script>
+</body>
+</html>

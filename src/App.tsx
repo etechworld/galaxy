@@ -288,7 +288,7 @@ function LoginScreen({
           <div>
             <h1 id="login-title">Galaxy Cartridge Care</h1>
             <p>Service receive, repair update, inventory</p>
-            <span className="dev-credit">Developed by PC WORLD | v2.12</span>
+            <span className="dev-credit">Developed by PC WORLD | v2.15</span>
           </div>
         </div>
 
@@ -545,7 +545,7 @@ function AppShell({
         <div className="dev-credit-sidebar">
           Galaxy Cartridge Care
           <br />
-          <small>Developed by PC WORLD | v2.12</small>
+          <small>Developed by PC WORLD | v2.15</small>
         </div>
 
         <div className="user-card">
@@ -1769,7 +1769,9 @@ function StatusPanel({
     let text = `*Galaxy Cartridge Care - Service Receipt*\nTicket No: ${job.ticketNo}\nStatus: ${job.status}\n\n*Customer Details*\nName: ${job.customerName}\nMobile: ${job.mobileNumber}\n\n*Product Details*\nItem: ${job.productName}\nSerial: ${job.productSerialNo}\nProblem: ${job.problem}${job.estimatedCost ? `\nEst. Cost: ₹${job.estimatedCost}` : ''}${job.repairCost !== undefined ? `\nFinal Cost: ₹${job.repairCost}` : ''}`;
     
     if ((job.status === "Repaired" || job.status === "Delivered") && job.repairCost && upiId) {
-      const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName || 'Galaxy Cartridge Care')}&am=${job.repairCost}&cu=INR`;
+      const shortName = upiName ? encodeURIComponent(upiName.split(" ")[0].replace(/[^a-zA-Z0-9]/g, "")) : 'Store';
+      const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+      const upiLink = `${baseUrl}pay.html?pa=${upiId}&pn=${shortName}&am=${job.repairCost}`;
       text += `\n\n*Payment Link*\nClick below to pay via UPI:\n${upiLink}`;
     }
     
