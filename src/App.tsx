@@ -1776,25 +1776,27 @@ function StatusPanel({
       text += `\n\n*Payment Link*\nClick below to pay via UPI:\n${upiLink}`;
     }
     
-    const params = new URLSearchParams({
-      t: job.ticketNo,
-      d: job.createdAt,
-      c: job.customerName,
-      m: job.mobileNumber,
-      p: job.productName,
-      st: job.status
-    });
-    if (job.productSerialNo) params.set('s', job.productSerialNo);
-    if (job.problem) params.set('pr', job.problem);
-    if (job.estimatedCost) params.set('ec', job.estimatedCost.toString());
-    if (job.repairCost !== undefined) params.set('rc', job.repairCost.toString());
-    if (job.partsUsed && job.partsUsed.length > 0) {
-      params.set('pu', job.partsUsed.map(p => `${p.name}:${p.price}`).join('|'));
+    if (job.status === "Repaired" || job.status === "Delivered") {
+      const params = new URLSearchParams({
+        t: job.ticketNo,
+        d: job.createdAt,
+        c: job.customerName,
+        m: job.mobileNumber,
+        p: job.productName,
+        st: job.status
+      });
+      if (job.productSerialNo) params.set('s', job.productSerialNo);
+      if (job.problem) params.set('pr', job.problem);
+      if (job.estimatedCost) params.set('ec', job.estimatedCost.toString());
+      if (job.repairCost !== undefined) params.set('rc', job.repairCost.toString());
+      if (job.partsUsed && job.partsUsed.length > 0) {
+        params.set('pu', job.partsUsed.map(p => `${p.name}:${p.price}`).join('|'));
+      }
+      
+      const invoiceLink = `${baseUrl}invoice.html?${params.toString()}`;
+      text += `\n\n*View & Download Invoice:*\n${invoiceLink}`;
     }
     
-    const invoiceLink = `${baseUrl}invoice.html?${params.toString()}`;
-    
-    text += `\n\n*View & Download Invoice:*\n${invoiceLink}`;
     text += `\n\nThank you for choosing Galaxy Cartridge Care!`;
     
     window.open(`https://wa.me/91${job.mobileNumber.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
