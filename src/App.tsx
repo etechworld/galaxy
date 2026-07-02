@@ -1671,6 +1671,8 @@ function StatusPanel({
   user,
   users,
   inventory,
+  upiId,
+  upiName,
   onSave,
   onEditJob,
   onDeleteJob,
@@ -1679,6 +1681,8 @@ function StatusPanel({
   user: AppUser;
   users: AppUser[];
   inventory: InventoryItem[];
+  upiId?: string;
+  upiName?: string;
   onSave: (
     jobId: string,
     status: ServiceStatus,
@@ -1762,7 +1766,14 @@ function StatusPanel({
 
   const handleWhatsApp = () => {
     if (!job) return;
-    const text = `*Galaxy Cartridge Care - Service Receipt*\nTicket No: ${job.ticketNo}\nStatus: ${job.status}\n\n*Customer Details*\nName: ${job.customerName}\nMobile: ${job.mobileNumber}\n\n*Product Details*\nItem: ${job.productName}\nSerial: ${job.productSerialNo}\nProblem: ${job.problem}${job.estimatedCost ? `\nEst. Cost: ₹${job.estimatedCost}` : ''}${job.repairCost !== undefined ? `\nFinal Cost: ₹${job.repairCost}` : ''}\n\nThank you for choosing Galaxy Cartridge Care!`;
+    let text = `*Galaxy Cartridge Care - Service Receipt*\nTicket No: ${job.ticketNo}\nStatus: ${job.status}\n\n*Customer Details*\nName: ${job.customerName}\nMobile: ${job.mobileNumber}\n\n*Product Details*\nItem: ${job.productName}\nSerial: ${job.productSerialNo}\nProblem: ${job.problem}${job.estimatedCost ? `\nEst. Cost: ₹${job.estimatedCost}` : ''}${job.repairCost !== undefined ? `\nFinal Cost: ₹${job.repairCost}` : ''}`;
+    
+    if ((job.status === "Repaired" || job.status === "Delivered") && job.repairCost && upiId) {
+      const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName || 'Galaxy Cartridge Care')}&am=${job.repairCost}&cu=INR`;
+      text += `\n\n*Payment Link*\nClick below to pay via UPI:\n${upiLink}`;
+    }
+    
+    text += `\n\nThank you for choosing Galaxy Cartridge Care!`;
     window.open(`https://wa.me/91${job.mobileNumber.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -3965,6 +3976,8 @@ export default function App() {
           user={user} 
           users={data.users} 
           inventory={data.inventory}
+          upiId={data.upiId}
+          upiName={data.upiName}
           onSave={saveStatus} 
           onEditJob={editJob}
           onDeleteJob={deleteJob}
