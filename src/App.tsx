@@ -288,7 +288,7 @@ function LoginScreen({
           <div>
             <h1 id="login-title">Galaxy Cartridge Care</h1>
             <p>Service receive, repair update, inventory</p>
-            <span className="dev-credit">Developed by PC WORLD | v2.8</span>
+            <span className="dev-credit">Developed by PC WORLD | v2.9</span>
           </div>
         </div>
 
@@ -545,7 +545,7 @@ function AppShell({
         <div className="dev-credit-sidebar">
           Galaxy Cartridge Care
           <br />
-          <small>Developed by PC WORLD | v2.8</small>
+          <small>Developed by PC WORLD | v2.9</small>
         </div>
 
         <div className="user-card">
@@ -2515,11 +2515,13 @@ function DashboardView({
 
 function StaffPanel({
   users,
+  user,
   onAddUser,
   onRemoveUser,
   onEditUser,
 }: {
   users: AppUser[];
+  user: AppUser;
   onAddUser: (user: AppUser) => void;
   onRemoveUser: (id: string) => void;
   onEditUser: (user: AppUser) => void;
@@ -2537,6 +2539,10 @@ function StaffPanel({
   const [editPin, setEditPin] = useState("0000");
   const [editEmail, setEditEmail] = useState("");
   const [editPassword, setEditPassword] = useState("");
+  
+  const [deleteConfirmStaff, setDeleteConfirmStaff] = useState<AppUser | null>(null);
+  const [deletePin, setDeletePin] = useState("");
+  const [deletePinError, setDeletePinError] = useState("");
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -2676,7 +2682,11 @@ function StaffPanel({
                   <button
                     className="icon-button danger"
                     type="button"
-                    onClick={() => onRemoveUser(staff.id)}
+                    onClick={() => {
+                      setDeleteConfirmStaff(staff);
+                      setDeletePin("");
+                      setDeletePinError("");
+                    }}
                     aria-label="Remove member"
                     title="Remove Member"
                   >
@@ -2763,6 +2773,53 @@ function StaffPanel({
               </label>
               <button type="submit" className="primary-button full-width" aria-label="Action button">
                 <Save size={16} /> Save Changes
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {deleteConfirmStaff && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirmStaff(null)} aria-hidden="true" style={{ zIndex: 1000 }}>
+          <section className="modal-card" onClick={(e) => e.stopPropagation()} role="dialog">
+            <div className="modal-header">
+              <h3>Remove Member</h3>
+              <button className="icon-button" onClick={() => setDeleteConfirmStaff(null)} aria-label="Close">
+                <X size={18} />
+              </button>
+            </div>
+            <form
+              className="status-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (deletePin === user.pin) {
+                  onRemoveUser(deleteConfirmStaff.id);
+                  setDeleteConfirmStaff(null);
+                  setDeletePin("");
+                  setDeletePinError("");
+                } else {
+                  setDeletePinError("Incorrect Security PIN. Please try again.");
+                }
+              }}
+            >
+              <div style={{ padding: "8px 0", textAlign: "center", gridColumn: "1 / -1" }}>
+                <p>Are you sure you want to remove <strong>{deleteConfirmStaff.name}</strong> from the team?</p>
+              </div>
+              <label className="field" style={{ gridColumn: "1 / -1" }}>
+                <span>Enter Admin PIN to Confirm</span>
+                <input
+                  required
+                  type="password"
+                  maxLength={4}
+                  value={deletePin}
+                  onChange={(e) => setDeletePin(e.target.value.replace(/\D/g, ""))}
+                  placeholder="PIN"
+                  inputMode="numeric"
+                />
+              </label>
+              {deletePinError && <p className="form-error" style={{ gridColumn: "1 / -1" }}>{deletePinError}</p>}
+              <button className="primary-button danger" type="submit" style={{ gridColumn: "1 / -1" }}>
+                Confirm Removal
               </button>
             </form>
           </section>
@@ -3828,6 +3885,7 @@ export default function App() {
       {activeView === "staff" && user.role === "admin" ? (
         <StaffPanel
           users={data.users}
+          user={user}
           onAddUser={addUser}
           onRemoveUser={removeUser}
           onEditUser={editUser}
