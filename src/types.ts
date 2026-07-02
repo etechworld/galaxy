@@ -69,4 +69,6 @@ export type AppData = {
   googleClientId?: string;
   googleApiKey?: string;
   lastGoogleBackupDate?: string;
+  upiId?: string;
+  upiName?: string;
 };

@@ -288,7 +288,7 @@ function LoginScreen({
           <div>
             <h1 id="login-title">Galaxy Cartridge Care</h1>
             <p>Service receive, repair update, inventory</p>
-            <span className="dev-credit">Developed by PC WORLD | v2.9</span>
+            <span className="dev-credit">Developed by PC WORLD | v2.10</span>
           </div>
         </div>
 
@@ -545,7 +545,7 @@ function AppShell({
         <div className="dev-credit-sidebar">
           Galaxy Cartridge Care
           <br />
-          <small>Developed by PC WORLD | v2.9</small>
+          <small>Developed by PC WORLD | v2.10</small>
         </div>
 
         <div className="user-card">
@@ -2854,11 +2854,13 @@ function SettingsPanel({
   user,
   onBackup,
   onRestore,
+  onUpdateUpi,
 }: {
   data: AppData;
   user: AppUser;
   onBackup: () => void;
   onRestore: (data: AppData) => void;
+  onUpdateUpi?: (upiId: string, upiName: string) => void;
 }) {
   const [pinPromptOpen, setPinPromptOpen] = useState(false);
   const [unlockPin, setUnlockPin] = useState("");
@@ -2933,7 +2935,18 @@ function SettingsPanel({
     setPwdLoading(false);
   };
 
+  const [upiId, setUpiId] = useState(data.upiId || "");
+  const [upiName, setUpiName] = useState(data.upiName || "");
+  const [upiSuccess, setUpiSuccess] = useState("");
 
+  const handleUpdateUpi = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onUpdateUpi) {
+      onUpdateUpi(upiId, upiName);
+      setUpiSuccess("UPI settings updated successfully!");
+      setTimeout(() => setUpiSuccess(""), 3000);
+    }
+  };
 
   const handleLocalFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -3150,6 +3163,78 @@ function SettingsPanel({
                 style={{ padding: "10px 16px", minHeight: "38px" }}
                aria-label="Action button">
                 {pwdLoading ? "Updating..." : "Update Password"}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* UPI Payment Setup Card */}
+        <div style={{ 
+          background: "var(--surface-soft)", 
+          border: "1px solid var(--border)",
+          borderRadius: "12px",
+          padding: "20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ 
+              background: "rgba(16, 185, 129, 0.15)", 
+              color: "var(--green)", 
+              padding: "10px", 
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}>
+              <Smartphone size={20} />
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>UPI Payment Setup</h4>
+              <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "var(--muted)" }}>
+                Configure your UPI ID to receive payments directly via QR Code.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleUpdateUpi} style={{ display: "grid", gap: "14px" }}>
+            <label className="field">
+              <span>UPI ID (VPA)</span>
+              <input
+                required
+                type="text"
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                placeholder="e.g. 9876543210@ybl"
+                style={{ fontSize: "0.9rem" }}
+              />
+            </label>
+            
+            <label className="field">
+              <span>Payee Name (Optional)</span>
+              <input
+                type="text"
+                value={upiName}
+                onChange={(e) => setUpiName(e.target.value)}
+                placeholder="e.g. PC World"
+                style={{ fontSize: "0.9rem" }}
+              />
+            </label>
+            
+            {upiSuccess && (
+              <p style={{ color: "var(--green)", fontSize: "0.85rem", margin: 0, fontWeight: 600 }}>
+                ✓ {upiSuccess}
+              </p>
+            )}
+
+            <div style={{ display: "flex", marginTop: "4px" }}>
+              <button 
+                className="primary-button" 
+                type="submit" 
+                style={{ padding: "10px 16px", minHeight: "38px" }}
+               aria-label="Action button">
+                Save UPI Settings
               </button>
             </div>
           </form>
@@ -3898,6 +3983,9 @@ export default function App() {
           user={user}
           onBackup={handleBackup}
           onRestore={handleRestore}
+          onUpdateUpi={(upiId, upiName) => {
+            handleSetData(prev => ({ ...prev, upiId, upiName }));
+          }}
         />
       ) : null}
     </AppShell>
