@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Service Invoice</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 4px 15px rgba(0,0,0,0.05); font-size: 16px; line-height: 24px; background: #fff; border-radius: 8px; }
+        .invoice-box table { width: 100%; line-height: inherit; text-align: left; border-collapse: collapse; }
+        .invoice-box table td { padding: 10px; vertical-align: top; }
+        .invoice-box table tr.top table td { padding-bottom: 20px; }
+        .invoice-box table tr.top table td.title { font-size: 28px; line-height: 35px; color: #2563eb; font-weight: bold; }
+        .invoice-box table tr.information table td { padding-bottom: 20px; }
+        .invoice-box table tr.heading td { background: #f8fafc; border-bottom: 2px solid #cbd5e1; font-weight: bold; }
+        .invoice-box table tr.details td { padding-bottom: 20px; }
+        .invoice-box table tr.item td{ border-bottom: 1px solid #eee; }
+        .invoice-box table tr.item.last td { border-bottom: none; }
+        .invoice-box table tr.total td:nth-child(2) { border-top: 2px solid #cbd5e1; font-weight: bold; font-size: 1.2em; color: #0f172a; }
+        .btn-print { display: block; margin: 30px auto 0; padding: 12px 24px; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-align: center; max-width: 200px; font-weight: bold; }
+        .btn-print:hover { background: #1d4ed8; }
+        @media only screen and (max-width: 600px) {
+            .invoice-box table tr.top table td { width: 100%; display: block; text-align: center; }
+            .invoice-box table tr.information table td { width: 100%; display: block; text-align: center; }
+        }
+        @media print {
+            body { background: #fff; padding: 0; }
+            .invoice-box { box-shadow: none; border: none; margin: 0; padding: 0; }
+            .btn-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-box" id="invoice">
+        <div style="text-align: center; padding: 20px;">Loading Invoice...</div>
+    </div>
+    
+    <button class="btn-print" id="printBtn" style="display: none;" onclick="window.print()">Download / Print PDF</button>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const t = params.get('t');
+        
+        if (t) {
+            try {
+                const dateObj = new Date(params.get('d') || Date.now());
+                const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString();
+                
+                const c = params.get('c') || '';
+                const m = params.get('m') || '';
+                const p = params.get('p') || '';
+                const s = params.get('s') || '';
+                const pr = params.get('pr') || '';
+                const st = params.get('st') || '';
+                const ec = params.get('ec');
+                const rc = params.get('rc');
+                const ap = params.get('ap');
+                const puRaw = params.get('pu');
+                
+                let partsHtml = '';
+                if (puRaw) {
+                    const partsList = puRaw.split('|').map(part => {
+                        const [name, price] = part.split(':');
+                        return { n: name, p: price };
+                    });
+                    
+                    if (partsList.length > 0) {
+                        partsHtml = `
+                            <tr class="heading">
+                                <td>Replaced Parts / Services</td>
+                                <td style="text-align:right">Amount</td>
+                            </tr>
+                        `;
+                        partsList.forEach(part => {
+                            partsHtml += `
+                                <tr class="item">
+                                    <td>${part.n}</td>
+                                    <td style="text-align:right">₹${part.p}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                }
+                
+                const html = `
+                    <table cellpadding="0" cellspacing="0">
+                        <tr class="top">
+                            <td colspan="2">
+                                <table>
+                                    <tr>
+                                        <td class="title">Galaxy Cartridge Care</td>
+                                        <td style="text-align:right">
+                                            Invoice #: <strong>${t}</strong><br>
+                                            Created: ${dateStr}<br>
+                                            Status: <strong>${st}</strong>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                        <tr class="information">
+                            <td colspan="2">
+                                <table>
+                                    <tr>
+                                        <td>
+                                            <strong>Customer Details:</strong><br>
+                                            ${c}<br>
+                                            Mobile: ${m}
+                                        </td>
+                                        <td style="text-align:right">
+                                            <strong>Device Details:</strong><br>
+                                            ${p}<br>
+                                            Serial: ${s}
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <tr class="heading">
+                            <td>Problem Reported</td>
+                            <td style="text-align:right"></td>
+                        </tr>
+                        <tr class="details">
+                            <td>${pr}</td>
+                            <td></td>
+                        </tr>
+                        
+                        ${partsHtml}
+                        
+                        ${ap && !rc ? `
+                        <tr class="item">
+                            <td>Advance Payment Received</td>
+                            <td style="text-align:right; color: #16a34a;">₹${ap}</td>
+                        </tr>` : ''}
+
+                        ${ec && !rc ? `
+                        <tr class="item last">
+                            <td>Estimated Cost</td>
+                            <td style="text-align:right">₹${ec}</td>
+                        </tr>` : ''}
+
+                        ${rc ? `
+                        <tr class="item">
+                            <td>Total Repair Cost</td>
+                            <td style="text-align:right">₹${rc}</td>
+                        </tr>` : ''}
+
+                        ${rc && ap ? `
+                        <tr class="item">
+                            <td>Advance Payment</td>
+                            <td style="text-align:right; color: #16a34a;">- ₹${ap}</td>
+                        </tr>
+                        <tr class="total">
+                            <td></td>
+                            <td style="text-align:right">Balance Due: ₹${rc - ap}</td>
+                        </tr>` : (rc ? `
+                        <tr class="total">
+                            <td></td>
+                            <td style="text-align:right">Total Repair Cost: ₹${rc}</td>
+                        </tr>` : '')}
+                        
+                        ${st === "Cancelled" && ap ? `
+                        <tr class="total">
+                            <td></td>
+                            <td style="text-align:right; color: #dc2626;">Refund Advance: ₹${ap}</td>
+                        </tr>` : ''}
+                    </table>
+                    <div style="text-align: center; margin-top: 40px; font-size: 0.9em; color: #777;">
+                        Thank you for your business!<br>
+                        This is a computer-generated invoice and requires no signature.
+                    </div>
+                `;
+                
+                document.getElementById('invoice').innerHTML = html;
+                document.getElementById('printBtn').style.display = 'block';
+                document.title = "Invoice_" + t;
+                
+            } catch(e) {
+                document.getElementById('invoice').innerHTML = '<div style="color:red; text-align:center; padding:20px;">Error loading invoice data.</div>';
+            }
+        } else {
+            document.getElementById('invoice').innerHTML = '<div style="text-align:center; padding:20px;">No invoice data found in URL.</div>';
+        }
+    </script>
+</body>
+</html>
