@@ -1097,11 +1097,13 @@ function IntakeForm({
   users,
   user,
   inventory,
+  jobs,
   onCreate,
 }: {
   users: AppUser[];
   user: AppUser;
   inventory: InventoryItem[];
+  jobs: ServiceJob[];
   onCreate: (form: JobFormState) => void;
 }) {
   const [form, setForm] = useState<JobFormState>(() => emptyJobForm(user));
@@ -1111,9 +1113,20 @@ function IntakeForm({
   const [scannerOpen, setScannerOpen] = useState(false);
   const [annotatorOpen, setAnnotatorOpen] = useState(false);
   const [mobileScannerAvailable, setMobileScannerAvailable] = useState(false);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const serialScanInputRef = useRef<HTMLInputElement>(null);
+
+  const pastCustomers = useMemo(() => {
+    const customers = new Map<string, { name: string, mobile: string }>();
+    for (const job of jobs) {
+      if (job.customerName && job.mobileNumber) {
+        customers.set(job.customerName + "|" + job.mobileNumber, { name: job.customerName, mobile: job.mobileNumber });
+      }
+    }
+    return Array.from(customers.values());
+  }, [jobs]);
 
   useEffect(() => {
     setForm((current) => ({
@@ -1247,19 +1260,45 @@ function IntakeForm({
       </div>
 
       <form className="intake-form" onSubmit={submit}>
-        <label className="field">
+        <label className="field" style={{ position: "relative" }}>
           <span>Customer Name</span>
           <div className="input-with-icon">
             <User size={16} />
             <input
               required
               value={form.customerName}
-              onChange={(event) =>
-                updateForm("customerName", event.target.value)
-              }
+              onChange={(event) => {
+                updateForm("customerName", event.target.value);
+                setShowCustomerDropdown(true);
+              }}
+              onFocus={() => setShowCustomerDropdown(true)}
+              onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
               placeholder="Customer Name"
+              autoComplete="off"
             />
           </div>
+          {showCustomerDropdown && form.customerName && (
+            <ul style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #ddd", borderRadius: "0 0 6px 6px", zIndex: 10, listStyle: "none", padding: 0, margin: 0, maxHeight: "200px", overflowY: "auto", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}>
+              {pastCustomers
+                .filter(c => c.name.toLowerCase().includes(form.customerName.toLowerCase()) || c.mobile.includes(form.customerName))
+                .slice(0, 10)
+                .map((c, idx) => (
+                  <li 
+                    key={idx} 
+                    style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #f1f5f9" }}
+                    onClick={() => {
+                      updateForm("customerName", c.name);
+                      updateForm("mobileNumber", c.mobile);
+                      setShowCustomerDropdown(false);
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  >
+                    <strong>{c.name}</strong> <span style={{color: "#64748b", fontSize: "0.9em"}}>{c.mobile}</span>
+                  </li>
+              ))}
+            </ul>
+          )}
         </label>
 
         <label className="field">
@@ -4035,6 +4074,7 @@ export default function App() {
           users={data.users}
           user={user}
           inventory={data.inventory}
+          jobs={data.jobs}
           onCreate={createJob}
         />
       ) : null}
