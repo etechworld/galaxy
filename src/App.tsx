@@ -288,7 +288,7 @@ function LoginScreen({
           <div>
             <h1 id="login-title">Galaxy Cartridge Care</h1>
             <p>Service receive, repair update, inventory</p>
-            <span className="dev-credit">Developed by PC WORLD | v2.11</span>
+            <span className="dev-credit">Developed by PC WORLD | v2.12</span>
           </div>
         </div>
 
@@ -545,7 +545,7 @@ function AppShell({
         <div className="dev-credit-sidebar">
           Galaxy Cartridge Care
           <br />
-          <small>Developed by PC WORLD | v2.11</small>
+          <small>Developed by PC WORLD | v2.12</small>
         </div>
 
         <div className="user-card">
@@ -1752,6 +1752,56 @@ function StatusPanel({
 
   const canEditAssignment = user.role === "admin" || !job.assignedEngineerId;
 
+  const handleWhatsApp = () => {
+    if (!job) return;
+    const text = `*Galaxy Cartridge Care - Service Receipt*\nTicket No: ${job.ticketNo}\nStatus: ${job.status}\n\n*Customer Details*\nName: ${job.customerName}\nMobile: ${job.mobileNumber}\n\n*Product Details*\nItem: ${job.productName}\nSerial: ${job.productSerialNo}\nProblem: ${job.problem}${job.estimatedCost ? `\nEst. Cost: ₹${job.estimatedCost}` : ''}${job.repairCost !== undefined ? `\nFinal Cost: ₹${job.repairCost}` : ''}\n\nThank you for choosing Galaxy Cartridge Care!`;
+    window.open(`https://wa.me/91${job.mobileNumber.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handlePrint = () => {
+    if (!job) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`
+      <html>
+        <head>
+          <title>Receipt - ${job.ticketNo}</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+            .header { text-align: center; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
+            .header h1 { margin: 0; font-size: 24px; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 14px; }
+            .label { font-weight: bold; color: #555; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Galaxy Cartridge Care</h1>
+            <p style="margin: 4px 0;">Service Receipt</p>
+          </div>
+          <div class="row"><span class="label">Ticket No:</span> <span>${job.ticketNo}</span></div>
+          <div class="row"><span class="label">Date:</span> <span>${new Date(job.createdAt).toLocaleString()}</span></div>
+          <div class="row"><span class="label">Customer Name:</span> <span>${job.customerName}</span></div>
+          <div class="row"><span class="label">Mobile Number:</span> <span>${job.mobileNumber}</span></div>
+          <div class="row"><span class="label">Product Name:</span> <span>${job.productName}</span></div>
+          <div class="row"><span class="label">Serial No:</span> <span>${job.productSerialNo}</span></div>
+          <div class="row"><span class="label">Problem:</span> <span>${job.problem}</span></div>
+          ${job.estimatedCost ? `<div class="row"><span class="label">Approx Estimate:</span> <span>₹${job.estimatedCost}</span></div>` : ''}
+          ${job.repairCost !== undefined ? `<div class="row"><span class="label">Final Repair Cost:</span> <span style="font-weight: bold; color: #2563eb;">₹${job.repairCost}</span></div>` : ''}
+          <div class="row"><span class="label">Current Status:</span> <span>${job.status}</span></div>
+          <div style="margin-top: 40px; text-align: center; font-size: 0.9em; color: #666;">
+            Thank you for your business!<br/>
+            <small>(This is a computer generated receipt)</small>
+          </div>
+          <script>
+            window.onload = () => { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
+
   return (
     <section className="panel detail-panel" aria-labelledby="detail-title">
       <div className="panel-heading detail-heading">
@@ -1759,7 +1809,27 @@ function StatusPanel({
           <p>{job.ticketNo}</p>
           <h3 id="detail-title">{job.customerName}</h3>
         </div>
-        <StatusBadge status={job.status} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            className="icon-button"
+            style={{ color: '#25D366' }}
+            title="Send WhatsApp Receipt"
+            onClick={handleWhatsApp}
+          >
+            <MessageCircle size={22} />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            style={{ color: 'var(--blue)' }}
+            title="Print Receipt"
+            onClick={handlePrint}
+          >
+            <Printer size={22} />
+          </button>
+          <StatusBadge status={job.status} />
+        </div>
       </div>
 
       <div className="detail-grid">
@@ -1810,69 +1880,6 @@ function StatusPanel({
             <strong>Actual Repair Cost:</strong> ₹{job.repairCost}
           </p>
         ) : null}
-      </div>
-
-      <div style={{ display: 'flex', gap: '8px', marginTop: '1rem' }}>
-        <button
-          type="button"
-          className="utility-button filled"
-          style={{ flex: 1, display: 'flex', justifyContent: 'center', background: '#25D366', color: 'white', border: 'none' }}
-          onClick={() => {
-            const text = `*Galaxy Cartridge Care - Service Receipt*\nTicket No: ${job.ticketNo}\nStatus: ${job.status}\n\n*Customer Details*\nName: ${job.customerName}\nMobile: ${job.mobileNumber}\n\n*Product Details*\nItem: ${job.productName}\nSerial: ${job.productSerialNo}\nProblem: ${job.problem}${job.estimatedCost ? `\nEst. Cost: ₹${job.estimatedCost}` : ''}${job.repairCost !== undefined ? `\nFinal Cost: ₹${job.repairCost}` : ''}\n\nThank you for choosing Galaxy Cartridge Care!`;
-            window.open(`https://wa.me/91${job.mobileNumber.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
-          }}
-        >
-          <MessageCircle size={17} /> WhatsApp
-        </button>
-        <button
-          type="button"
-          className="utility-button filled"
-          style={{ flex: 1, display: 'flex', justifyContent: 'center' }}
-          onClick={() => {
-            const win = window.open('', '_blank');
-            if (!win) return;
-            win.document.write(`
-              <html>
-                <head>
-                  <title>Receipt - ${job.ticketNo}</title>
-                  <style>
-                    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-                    .header { text-align: center; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
-                    .header h1 { margin: 0; font-size: 24px; }
-                    .row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 14px; }
-                    .label { font-weight: bold; color: #555; }
-                  </style>
-                </head>
-                <body>
-                  <div class="header">
-                    <h1>Galaxy Cartridge Care</h1>
-                    <p style="margin: 4px 0;">Service Receipt</p>
-                  </div>
-                  <div class="row"><span class="label">Ticket No:</span> <span>${job.ticketNo}</span></div>
-                  <div class="row"><span class="label">Date:</span> <span>${new Date(job.createdAt).toLocaleString()}</span></div>
-                  <div class="row"><span class="label">Customer Name:</span> <span>${job.customerName}</span></div>
-                  <div class="row"><span class="label">Mobile Number:</span> <span>${job.mobileNumber}</span></div>
-                  <div class="row"><span class="label">Product Name:</span> <span>${job.productName}</span></div>
-                  <div class="row"><span class="label">Serial No:</span> <span>${job.productSerialNo}</span></div>
-                  <div class="row"><span class="label">Problem:</span> <span>${job.problem}</span></div>
-                  ${job.estimatedCost ? `<div class="row"><span class="label">Approx Estimate:</span> <span>₹${job.estimatedCost}</span></div>` : ''}
-                  ${job.repairCost !== undefined ? `<div class="row"><span class="label">Final Repair Cost:</span> <span style="font-weight: bold; color: #2563eb;">₹${job.repairCost}</span></div>` : ''}
-                  <div class="row"><span class="label">Current Status:</span> <span>${job.status}</span></div>
-                  <div style="margin-top: 40px; text-align: center; font-size: 0.9em; color: #666;">
-                    Thank you for your business!<br/>
-                    <small>(This is a computer generated receipt)</small>
-                  </div>
-                  <script>
-                    window.onload = () => { window.print(); window.close(); }
-                  </script>
-                </body>
-              </html>
-            `);
-            win.document.close();
-          }}
-        >
-          <Printer size={17} /> Print
-        </button>
       </div>
 
       <div style={{ display: 'flex', gap: '8px', marginTop: '1rem' }}>
