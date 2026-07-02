@@ -429,12 +429,31 @@ function AppShell({
 }) {
   const [showMore, setShowMore] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 900);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => {
+        setDeferredPrompt(null);
+      });
+    }
+  };
 
   const allNavItems = navItems.concat(
     user?.role === "admin"
@@ -572,14 +591,29 @@ function AppShell({
             <strong>{user.name}</strong>
             <span>{user.id}</span>
           </div>
-          <button
-            className="icon-button"
-            type="button"
-            onClick={onLogout}
-            aria-label="Logout"
-          >
-            <LogOut size={17} />
-          </button>
+          <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+            {deferredPrompt && (
+              <button
+                className="icon-button"
+                type="button"
+                onClick={handleInstallClick}
+                aria-label="Install App"
+                style={{ background: "var(--blue)", color: "white" }}
+                title="Install App"
+              >
+                <Download size={17} />
+              </button>
+            )}
+            <button
+              className="icon-button"
+              type="button"
+              onClick={onLogout}
+              aria-label="Logout"
+              title="Logout"
+            >
+              <LogOut size={17} />
+            </button>
+          </div>
         </div>
       </aside>
 

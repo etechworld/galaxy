@@ -1,0 +1,17 @@
+{
+  "short_name": "Galaxy Care",
+  "name": "Galaxy Cartridge Care",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "type": "image/png",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "./",
+  "theme_color": "#3b82f6"
+}
