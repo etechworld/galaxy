@@ -1504,7 +1504,7 @@ function IntakeForm({
             className="hidden-input"
             type="file"
             accept="image/*"
-           
+            capture="environment"
             onChange={(event) => readPhoto(event.target.files?.[0])}
           />
           <input
