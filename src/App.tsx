@@ -288,7 +288,7 @@ function LoginScreen({
           <div>
             <h1 id="login-title">Galaxy Cartridge Care</h1>
             <p>Service receive, repair update, inventory</p>
-            <span className="dev-credit">Developed by PC WORLD | v2.6</span>
+            <span className="dev-credit">Developed by PC WORLD | v2.7</span>
           </div>
         </div>
 
@@ -545,7 +545,7 @@ function AppShell({
         <div className="dev-credit-sidebar">
           Galaxy Cartridge Care
           <br />
-          <small>Developed by PC WORLD | v2.6</small>
+          <small>Developed by PC WORLD | v2.7</small>
         </div>
 
         <div className="user-card">
@@ -1972,7 +1972,7 @@ function StatusPanel({
                 </select>
               </label>
 
-              <label className="field full-width">
+              <label className="field" style={{ gridColumn: '1 / -1' }}>
                 <span>What Repaired (Optional)</span>
                 <textarea
                   value={repairNote}
@@ -1983,7 +1983,7 @@ function StatusPanel({
                 />
               </label>
 
-              <div className="field full-width">
+              <div className="field" style={{ gridColumn: '1 / -1' }}>
                 <span>Items (Parts Used)</span>
                 {parts.map((part, index) => (
                   <div key={part.id} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
