@@ -38,31 +38,46 @@
 
     <script>
         const params = new URLSearchParams(window.location.search);
-        const dataParam = params.get('d');
+        const t = params.get('t');
         
-        if (dataParam) {
+        if (t) {
             try {
-                const data = JSON.parse(decodeURIComponent(atob(dataParam)));
-                
-                const dateObj = new Date(data.d);
+                const dateObj = new Date(params.get('d') || Date.now());
                 const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString();
                 
+                const c = params.get('c') || '';
+                const m = params.get('m') || '';
+                const p = params.get('p') || '';
+                const s = params.get('s') || '';
+                const pr = params.get('pr') || '';
+                const st = params.get('st') || '';
+                const ec = params.get('ec');
+                const rc = params.get('rc');
+                const puRaw = params.get('pu');
+                
                 let partsHtml = '';
-                if (data.pu && data.pu.length > 0) {
-                    partsHtml = `
-                        <tr class="heading">
-                            <td>Replaced Parts / Services</td>
-                            <td style="text-align:right">Amount</td>
-                        </tr>
-                    `;
-                    data.pu.forEach(p => {
-                        partsHtml += `
-                            <tr class="item">
-                                <td>${p.n}</td>
-                                <td style="text-align:right">₹${p.p}</td>
+                if (puRaw) {
+                    const partsList = puRaw.split('|').map(part => {
+                        const [name, price] = part.split(':');
+                        return { n: name, p: price };
+                    });
+                    
+                    if (partsList.length > 0) {
+                        partsHtml = `
+                            <tr class="heading">
+                                <td>Replaced Parts / Services</td>
+                                <td style="text-align:right">Amount</td>
                             </tr>
                         `;
-                    });
+                        partsList.forEach(part => {
+                            partsHtml += `
+                                <tr class="item">
+                                    <td>${part.n}</td>
+                                    <td style="text-align:right">₹${part.p}</td>
+                                </tr>
+                            `;
+                        });
+                    }
                 }
                 
                 const html = `
@@ -73,9 +88,9 @@
                                     <tr>
                                         <td class="title">Galaxy Cartridge Care</td>
                                         <td style="text-align:right">
-                                            Invoice #: <strong>${data.t}</strong><br>
+                                            Invoice #: <strong>${t}</strong><br>
                                             Created: ${dateStr}<br>
-                                            Status: <strong>${data.st}</strong>
+                                            Status: <strong>${st}</strong>
                                         </td>
                                     </tr>
                                 </table>
@@ -88,13 +103,13 @@
                                     <tr>
                                         <td>
                                             <strong>Customer Details:</strong><br>
-                                            ${data.c}<br>
-                                            Mobile: ${data.m}
+                                            ${c}<br>
+                                            Mobile: ${m}
                                         </td>
                                         <td style="text-align:right">
                                             <strong>Device Details:</strong><br>
-                                            ${data.p}<br>
-                                            Serial: ${data.s}
+                                            ${p}<br>
+                                            Serial: ${s}
                                         </td>
                                     </tr>
                                 </table>
@@ -106,22 +121,22 @@
                             <td style="text-align:right"></td>
                         </tr>
                         <tr class="details">
-                            <td>${data.pr}</td>
+                            <td>${pr}</td>
                             <td></td>
                         </tr>
                         
                         ${partsHtml}
                         
-                        ${data.ec && !data.rc ? `
+                        ${ec && !rc ? `
                         <tr class="item last">
                             <td>Estimated Cost</td>
-                            <td style="text-align:right">₹${data.ec}</td>
+                            <td style="text-align:right">₹${ec}</td>
                         </tr>` : ''}
 
-                        ${data.rc ? `
+                        ${rc ? `
                         <tr class="total">
                             <td></td>
-                            <td style="text-align:right">Total Repair Cost: ₹${data.rc}</td>
+                            <td style="text-align:right">Total Repair Cost: ₹${rc}</td>
                         </tr>` : ''}
                     </table>
                     <div style="text-align: center; margin-top: 40px; font-size: 0.9em; color: #777;">
@@ -132,7 +147,7 @@
                 
                 document.getElementById('invoice').innerHTML = html;
                 document.getElementById('printBtn').style.display = 'block';
-                document.title = "Invoice_" + data.t;
+                document.title = "Invoice_" + t;
                 
             } catch(e) {
                 document.getElementById('invoice').innerHTML = '<div style="color:red; text-align:center; padding:20px;">Error loading invoice data.</div>';
