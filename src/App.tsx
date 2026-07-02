@@ -78,6 +78,7 @@ type JobFormState = {
   problem: string;
   assignedEngineerId: string;
   photoDataUrl?: string;
+  estimatedCost: string;
 };
 
 const emptyJobForm = (user: AppUser | null): JobFormState => ({
@@ -87,6 +88,7 @@ const emptyJobForm = (user: AppUser | null): JobFormState => ({
   productSerialNo: "",
   problem: "",
   assignedEngineerId: "",
+  estimatedCost: "",
 });
 
 const statusClass: Record<ServiceStatus, string> = {
@@ -286,7 +288,7 @@ function LoginScreen({
           <div>
             <h1 id="login-title">Galaxy Cartridge Care</h1>
             <p>Service receive, repair update, inventory</p>
-            <span className="dev-credit">Developed by PC WORLD</span>
+            <span className="dev-credit">Developed by PC WORLD | v2.3</span>
           </div>
         </div>
 
@@ -543,7 +545,7 @@ function AppShell({
         <div className="dev-credit-sidebar">
           Galaxy Cartridge Care
           <br />
-          <small>Developed by PC WORLD</small>
+          <small>Developed by PC WORLD | v2.3</small>
         </div>
 
         <div className="user-card">
@@ -1383,6 +1385,20 @@ function IntakeForm({
           </div>
         </label>
 
+        <label className="field full-width">
+          <span>Approx Estimate (₹)</span>
+          <div className="input-with-icon">
+            <IndianRupee size={16} />
+            <input
+              type="text"
+              inputMode="numeric"
+              value={form.estimatedCost}
+              onChange={(event) => updateForm("estimatedCost", event.target.value.replace(/\D/g, ""))}
+              placeholder="Approximate repair cost"
+            />
+          </div>
+        </label>
+
         <PhotoAnnotator
           photoUrl={form.photoDataUrl || ""}
           open={annotatorOpen}
@@ -1538,6 +1554,12 @@ function JobsPanel({
                 {job.ticketNo} - {job.customerName}
               </strong>
               <small style={{ display: 'block', color: 'var(--muted)', fontSize: '0.8rem', marginTop: '4px' }}>
+                📞 {job.mobileNumber}
+              </small>
+              <small style={{ display: 'block', color: 'var(--muted)', fontSize: '0.8rem', marginTop: '2px' }}>
+                🕒 {new Date(job.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+              </small>
+              <small style={{ display: 'block', color: 'var(--muted)', fontSize: '0.8rem', marginTop: '2px' }}>
                 Assigned: {engineerName(job.assignedEngineerId, users)}
               </small>
             </span>
@@ -1557,6 +1579,78 @@ function JobsPanel({
   );
 }
 
+function PartComboBox({
+  value,
+  onChangeName,
+  onSelectProduct,
+  inventory,
+  disabled
+}: {
+  value: string;
+  onChangeName: (val: string) => void;
+  onSelectProduct: (price: number) => void;
+  inventory: InventoryItem[];
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filtered = inventory.filter(i => i.name.toLowerCase().includes(value.toLowerCase()));
+
+  return (
+    <div ref={wrapperRef} className="input-with-icon" style={{ position: 'relative', width: '100%', flex: 2 }}>
+      <Wrench size={16} />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChangeName(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        placeholder="Type or select part..."
+        disabled={disabled}
+      />
+      {open && !disabled && (
+        <ul style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, 
+          maxHeight: '200px', overflowY: 'auto', background: 'white', 
+          border: '1px solid #ccc', zIndex: 10, listStyle: 'none', padding: 0, margin: 0,
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: '4px'
+        }}>
+          {filtered.map(item => (
+            <li 
+              key={item.id} 
+              style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee', color: '#333', fontSize: '0.9rem' }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChangeName(item.name);
+                onSelectProduct(item.price);
+                setOpen(false);
+              }}
+            >
+              {item.name} <span style={{ color: 'gray', fontSize: '0.8rem' }}>(₹{item.price})</span>
+            </li>
+          ))}
+          {filtered.length === 0 && (
+            <li style={{ padding: '8px 12px', color: 'gray', fontSize: '0.85rem' }}>No matches. Type to add custom part.</li>
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status: ServiceStatus }) {
   return (
     <span className={`status-badge ${statusClass[status]}`}>{status}</span>
@@ -1567,6 +1661,7 @@ function StatusPanel({
   job,
   user,
   users,
+  inventory,
   onSave,
   onEditJob,
   onDeleteJob,
@@ -1574,11 +1669,14 @@ function StatusPanel({
   job?: ServiceJob;
   user: AppUser;
   users: AppUser[];
+  inventory: InventoryItem[];
   onSave: (
     jobId: string,
     status: ServiceStatus,
     assignedEngineerId: string,
     note: string,
+    repairCost?: number,
+    partsUsed?: { name: string; price: string; isCustom: boolean }[]
   ) => void | Promise<void>;
   onEditJob: (
     jobId: string,
@@ -1592,7 +1690,7 @@ function StatusPanel({
 }) {
   const [status, setStatus] = useState<ServiceStatus>("Received");
   const [assignedEngineerId, setAssignedEngineerId] = useState("ENG-01");
-  const [note, setNote] = useState("");
+  const [parts, setParts] = useState<{ id: string, name: string, price: string, isCustom: boolean }[]>([]);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
@@ -1614,8 +1712,28 @@ function StatusPanel({
     }
     setStatus(job.status);
     setAssignedEngineerId(job.assignedEngineerId);
-    setNote(job.repairNote);
-  }, [job]);
+    if (job.repairNote) {
+      const isCustom = !inventory.some(i => i.name.toLowerCase() === job.repairNote.trim().toLowerCase());
+      setParts([{ 
+        id: createId("part"), 
+        name: job.repairNote, 
+        price: job.repairCost !== undefined ? String(job.repairCost) : "", 
+        isCustom 
+      }]);
+    } else {
+      setParts([]);
+    }
+  }, [job, inventory]);
+
+  const updatePart = (index: number, field: 'name' | 'price' | 'isCustom', value: string | boolean) => {
+    const newParts = [...parts];
+    newParts[index] = { ...newParts[index], [field]: value };
+    setParts(newParts);
+  };
+  
+  const removePart = (index: number) => {
+    setParts(parts.filter((_, i) => i !== index));
+  };
 
   if (!job) {
     return (
@@ -1678,6 +1796,16 @@ function StatusPanel({
       <div className="problem-box">
         <strong>Problem</strong>
         <p>{job.problem}</p>
+        {job.estimatedCost ? (
+          <p style={{ marginTop: '8px' }}>
+            <strong>Approx Estimate:</strong> ₹{job.estimatedCost}
+          </p>
+        ) : null}
+        {job.repairCost !== undefined ? (
+          <p style={{ marginTop: '8px', color: 'var(--blue)' }}>
+            <strong>Actual Repair Cost:</strong> ₹{job.repairCost}
+          </p>
+        ) : null}
       </div>
 
       <div style={{ display: 'flex', gap: '8px', marginTop: '1rem' }}>
@@ -1686,7 +1814,7 @@ function StatusPanel({
           className="utility-button filled"
           style={{ flex: 1, display: 'flex', justifyContent: 'center', background: '#25D366', color: 'white', border: 'none' }}
           onClick={() => {
-            const text = `*Galaxy Cartridge Care - Service Receipt*\nTicket No: ${job.ticketNo}\nStatus: ${job.status}\n\n*Customer Details*\nName: ${job.customerName}\nMobile: ${job.mobileNumber}\n\n*Product Details*\nItem: ${job.productName}\nSerial: ${job.productSerialNo}\nProblem: ${job.problem}\n\nThank you for choosing Galaxy Cartridge Care!`;
+            const text = `*Galaxy Cartridge Care - Service Receipt*\nTicket No: ${job.ticketNo}\nStatus: ${job.status}\n\n*Customer Details*\nName: ${job.customerName}\nMobile: ${job.mobileNumber}\n\n*Product Details*\nItem: ${job.productName}\nSerial: ${job.productSerialNo}\nProblem: ${job.problem}${job.estimatedCost ? `\nEst. Cost: ₹${job.estimatedCost}` : ''}${job.repairCost !== undefined ? `\nFinal Cost: ₹${job.repairCost}` : ''}\n\nThank you for choosing Galaxy Cartridge Care!`;
             window.open(`https://wa.me/91${job.mobileNumber.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
           }}
         >
@@ -1723,6 +1851,8 @@ function StatusPanel({
                   <div class="row"><span class="label">Product Name:</span> <span>${job.productName}</span></div>
                   <div class="row"><span class="label">Serial No:</span> <span>${job.productSerialNo}</span></div>
                   <div class="row"><span class="label">Problem:</span> <span>${job.problem}</span></div>
+                  ${job.estimatedCost ? `<div class="row"><span class="label">Approx Estimate:</span> <span>₹${job.estimatedCost}</span></div>` : ''}
+                  ${job.repairCost !== undefined ? `<div class="row"><span class="label">Final Repair Cost:</span> <span style="font-weight: bold; color: #2563eb;">₹${job.repairCost}</span></div>` : ''}
                   <div class="row"><span class="label">Current Status:</span> <span>${job.status}</span></div>
                   <div style="margin-top: 40px; text-align: center; font-size: 0.9em; color: #666;">
                     Thank you for your business!<br/>
@@ -1804,7 +1934,7 @@ function StatusPanel({
                   onChange={(event) => {
                     setStatus(event.target.value as ServiceStatus);
                     if (event.target.value !== "Repaired") {
-                      setNote("");
+                      setParts([]);
                     }
                   }}
                 >
@@ -1838,19 +1968,57 @@ function StatusPanel({
                 </select>
               </label>
 
-              <label className="field full-width">
-                <span>What Repaired</span>
-                <div className="input-with-icon textarea-wrap">
-                  <Wrench size={16} />
-                  <textarea
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    rows={4}
-                    disabled={status !== "Repaired"}
-                    placeholder={status === "Repaired" ? "What was fixed?" : "Only available when Repaired is selected"}
-                  />
-                </div>
-              </label>
+              <div className="field full-width">
+                <span>What Repaired / Parts Used</span>
+                {parts.map((part, index) => (
+                  <div key={part.id} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                    <PartComboBox
+                      value={part.name}
+                      onChangeName={(val) => {
+                        updatePart(index, 'name', val);
+                        updatePart(index, 'isCustom', !inventory.some(i => i.name.toLowerCase() === val.toLowerCase()));
+                      }}
+                      onSelectProduct={(price) => updatePart(index, 'price', String(price))}
+                      inventory={inventory}
+                      disabled={status !== "Repaired"}
+                    />
+                    <div className="input-with-icon" style={{ flex: 1 }}>
+                      <IndianRupee size={16} />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={part.price}
+                        onChange={(e) => updatePart(index, 'price', e.target.value.replace(/\D/g, ""))}
+                        placeholder="Cost"
+                        disabled={status !== "Repaired"}
+                      />
+                    </div>
+                    {status === "Repaired" && (
+                      <button type="button" onClick={() => removePart(index)} className="icon-button" style={{ color: 'var(--red)', padding: '4px' }} title="Remove part">
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                
+                {status === "Repaired" && (
+                  <button 
+                    type="button" 
+                    className="utility-button" 
+                    onClick={() => setParts([...parts, { id: createId('part'), name: '', price: '', isCustom: false }])}
+                    style={{ marginTop: '4px' }}
+                  >
+                    ➕ Add Another Part
+                  </button>
+                )}
+                
+                {parts.length > 0 && status === "Repaired" && (
+                  <div style={{ marginTop: '12px', textAlign: 'right', fontSize: '0.95rem' }}>
+                    <strong>Total Repair Cost: </strong>
+                    <span style={{ color: 'var(--blue)' }}>₹{parts.reduce((sum, p) => sum + (Number(p.price) || 0), 0)}</span>
+                  </div>
+                )}
+              </div>
 
               <button type="submit" className="primary-button full-width" aria-label="Action button">
                 Confirm Update
@@ -1883,7 +2051,9 @@ function StatusPanel({
                   className="primary-button"
                   style={{ flex: 1, justifyContent: "center" }}
                   onClick={() => {
-                    void onSave(job.id, status, assignedEngineerId, note);
+                    const finalNote = parts.map(p => p.name.trim()).filter(Boolean).join(", ");
+                    const finalCost = parts.reduce((sum, p) => sum + (Number(p.price) || 0), 0);
+                    onSave(job.id, status, assignedEngineerId, finalNote, finalCost > 0 || finalNote ? finalCost : undefined, parts);
                     setStatusConfirmOpen(false);
                     setDialogOpen(false);
                   }}
@@ -3125,8 +3295,10 @@ export default function App() {
               saveData(updatedData);
               saveServerData(updatedData);
             } else {
-              setData(serverData);
-              saveData(serverData);
+              if (JSON.stringify(dataRef.current) !== JSON.stringify(serverData)) {
+                setData(serverData);
+                saveData(serverData);
+              }
             }
             setSyncMode("server");
             setSyncError(null);
@@ -3238,6 +3410,7 @@ export default function App() {
       createdAt: now,
       updatedAt: now,
       repairNote: "",
+      estimatedCost: form.estimatedCost,
       history: [
         {
           id: createId("hist"),
@@ -3280,10 +3453,26 @@ export default function App() {
     status: ServiceStatus,
     assignedEngineerId: string,
     note: string,
+    repairCost?: number,
+    partsUsed?: { name: string; price: string; isCustom: boolean }[]
   ) => {
     if (!user) {
       return;
     }
+    
+    if (status === "Repaired" && partsUsed) {
+      partsUsed.forEach(part => {
+        if (part.isCustom && part.name.trim() && Number(part.price) > 0) {
+          const existingProduct = dataRef.current.inventory.find(
+            (item) => item.name.toLowerCase() === part.name.trim().toLowerCase()
+          );
+          if (!existingProduct) {
+            addInventory(part.name.trim(), Number(part.price), 0);
+          }
+        }
+      });
+    }
+
     const now = new Date().toISOString();
     const currentJob = dataRef.current.jobs.find((job) => job.id === jobId);
     let compressedDeliveredPhoto: string | undefined;
@@ -3307,13 +3496,15 @@ export default function App() {
         const changed =
           job.status !== status ||
           job.assignedEngineerId !== assignedEngineerId ||
-          job.repairNote.trim() !== note.trim();
+          job.repairNote.trim() !== note.trim() ||
+          job.repairCost !== repairCost;
         return {
           ...job,
           photoDataUrl: compressedDeliveredPhoto ?? job.photoDataUrl,
           status,
           assignedEngineerId,
           repairNote: note.trim(),
+          repairCost: repairCost !== undefined ? repairCost : job.repairCost,
           updatedAt: now,
           history: changed
             ? [
@@ -3596,6 +3787,7 @@ export default function App() {
           job={selectedJob} 
           user={user} 
           users={data.users} 
+          inventory={data.inventory}
           onSave={saveStatus} 
           onEditJob={editJob}
           onDeleteJob={deleteJob}
